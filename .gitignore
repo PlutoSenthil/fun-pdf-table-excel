@@ -1,5 +1,8 @@
 *.pdf
-./data
+./input
+./output
+*.xlsx
+*.json
 
 
 .env
