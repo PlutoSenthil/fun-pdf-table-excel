@@ -12,7 +12,7 @@ def reset():
     st.session_state["no_tables_found"] = False
     st.session_state["key"] += 1
 
-st.title("PDF to Excel Table Extractor")
+st.title("PDF to Excel Table")
 
 if st.session_state["no_tables_found"]:
     st.warning(
@@ -23,7 +23,7 @@ if st.session_state["no_tables_found"]:
         "3. Lacks clear table borders\n\n"
         "Please try uploading a different PDF."
     )
-    st.button("Upload Another PDF", on_click=reset, type="primary")
+    st.button("Try Uploading Another PDF", on_click=reset, type="primary")
 
 elif "excel_data" not in st.session_state:
     uploaded_file = st.file_uploader(
