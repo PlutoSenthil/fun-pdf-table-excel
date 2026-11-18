@@ -13,9 +13,9 @@ def reset():
 st.title("PDF to Excel Table Extractor")
 
 if "excel_data" not in st.session_state:
-    uploaded_file = st.file_uploader("Upload PDF", type=["pdf"], key=st.session_state["key"])
+    uploaded_file = st.file_uploader("Upload Only One PDF", type=["pdf"], key=st.session_state["key"])
 
-    if uploaded_file and st.button("Extract Tables"):
+    if uploaded_file and st.button("Extract Tables",type="primary", icon="📊", icon_position="left", width="stretch"):
         with tempfile.TemporaryDirectory() as tmp:
             pdf_path = os.path.join(tmp, uploaded_file.name)
             excel_name = f"{os.path.splitext(uploaded_file.name)[0]}.xlsx"
@@ -25,7 +25,8 @@ if "excel_data" not in st.session_state:
                 f.write(uploaded_file.getbuffer())
 
             with pdfplumberAdapter(pdf_path) as pdf, OpenPyxlAdapter(excel_path, "OpenPyxl") as excel:
-                excel.write_rows(pdf.extract_tables(), freeze_header=True, bold_header=True, auto_fit=True)
+                tables = pdf.extract_tables()
+                excel.write_rows(tables, freeze_header=True, bold_header=True, auto_fit=True)
 
             with open(excel_path, "rb") as f:
                 st.session_state["excel_data"] = (excel_name, f.read())
@@ -38,5 +39,6 @@ else:
         data=excel_bytes,
         file_name=excel_name,
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        on_click=reset
+        on_click=reset,
+        type="primary", icon="⬇️", icon_position="left", width="stretch"
     )

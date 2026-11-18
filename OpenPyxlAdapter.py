@@ -1,4 +1,5 @@
 import os
+import re
 import openpyxl
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -24,24 +25,8 @@ class OpenPyxlAdapter:
     def __exit__(self, exc_type, exc_val, exc_tb) -> None:
         self.workbook.save(self.filename)
 
-    def _parse_value(self, val):
-        if val is None:return None
-        if isinstance(val, (int, float)):return val
-        
-        val_str = str(val).strip()
-        if not val_str:return None
-        
-        cleaned_str = val_str.replace(',', '')
-        
-        try:
-            if '.' in cleaned_str:return float(cleaned_str)
-            else:return int(cleaned_str)
-        except ValueError:
-            return val_str
-
     def write_row(self, row_data: list) -> None:
-        parsed_row = [self._parse_value(item) for item in row_data]
-        self.worksheet.append(parsed_row)
+        self.worksheet.append(row_data)
 
     def write_rows(self, rows: list[list], freeze_header: bool = False, bold_header: bool = False, auto_fit: bool = False) -> None:
         for row in rows:
