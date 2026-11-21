@@ -13,15 +13,20 @@ def reset():
     st.session_state["key"] += 1
 
 st.title("PDF to Excel Table")
-
+st.info(
+    "**Note:** Only works with text-based PDFs and not scanned documents. "
+    '(As Tabula explains, *"If you can click and drag to select text in your '
+    'table in a PDF viewer, then your PDF is text-based."*)',
+    icon="ℹ️",
+)
 if st.session_state["no_tables_found"]:
     st.warning(
         "**No tables were found in this PDF.**\n\n"
-        "This usually happens if the file:\n"
-        "1. Contains only plain text\n"
-        "2. Is a scanned image\n"
-        "3. Lacks clear table borders\n\n"
-        "Please try uploading a different PDF."
+        "This usually happens when the file:\n"
+        "1. Contains only plain text with no tables.\n"
+        "2. Is a scanned document or image.\n"
+        "3. Has layouts or spacing that are hard to detect as a table.\n\n"
+        "Try uploading a different PDF."
     )
     st.button("Try Uploading Another PDF", on_click=reset, type="primary")
 
