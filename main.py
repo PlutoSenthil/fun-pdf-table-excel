@@ -1,8 +1,20 @@
 import os
 import tempfile
 import streamlit as st
-from pdfplumberAdapter import pdfplumberAdapter
+from CamelotAdapter import CamelotAdapter
 from OpenPyxlAdapter import OpenPyxlAdapter
+from typing import Any
+
+read_pdf_kwargs: dict[str,Any] = {
+                "pages":"all",
+                "flavor": "hybrid", # 'lattice', 'stream', 'network', 'hybrid', 'ml' or 'auto'
+                "engine": "combined", # combined or vector
+                "process_background": False,
+                "line_scale": 40,
+                "strip_text": ",",
+                "replace_text":{" \n": " "},
+                "parallel": True,
+        }
 
 st.session_state.setdefault("key", 0)
 st.session_state.setdefault("no_tables_found", False)
@@ -12,13 +24,8 @@ def reset():
     st.session_state["no_tables_found"] = False
     st.session_state["key"] += 1
 
-st.title("PDF to Excel Table")
-st.info(
-    "**Note:** Only works with text-based PDFs and not scanned documents. "
-    '(As Tabula explains, *"If you can click and drag to select text in your '
-    'table in a PDF viewer, then your PDF is text-based."*)',
-    icon="ℹ️",
-)
+st.title("Camelot PDF to Excel Table")
+
 if st.session_state["no_tables_found"]:
     st.warning(
         "**No tables were found in this PDF.**\n\n"
@@ -46,8 +53,8 @@ elif "excel_data" not in st.session_state:
             with open(pdf_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            with pdfplumberAdapter(pdf_path) as pdf:
-                tables = pdf.extract_tables()
+            with CamelotAdapter(**read_pdf_kwargs) as pdf:
+                tables: list[list[Any]] | None = pdf.extract_tables(filepath=pdf_path)
 
             # Check if tables is empty (handles [] or [[]] depending on adapter implementation)
             if not tables or not any(tables):
