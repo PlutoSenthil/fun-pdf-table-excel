@@ -1,20 +1,9 @@
 import os
 import tempfile
 import streamlit as st
-from CamelotAdapter import CamelotAdapter
-from OpenPyxlAdapter import OpenPyxlAdapter
 from typing import Any
-
-read_pdf_kwargs: dict[str,Any] = {
-                "pages":"all",
-                "flavor": "hybrid", # 'lattice', 'stream', 'network', 'hybrid', 'ml' or 'auto'
-                "engine": "combined", # combined or vector
-                "process_background": False,
-                "line_scale": 40,
-                "strip_text": ",",
-                "replace_text":{" \n": " "},
-                "parallel": True,
-        }
+from CamelotAdapter import CamelotAdapter,FLAVOR_CONFIGS
+from OpenPyxlAdapter import OpenPyxlAdapter
 
 st.session_state.setdefault("key", 0)
 st.session_state.setdefault("no_tables_found", False)
@@ -28,7 +17,7 @@ st.title("Camelot PDF to Excel Table")
 
 if st.session_state["no_tables_found"]:
     st.warning(
-        "**No tables were found in this PDF.**\n\n"
+        "**No tables were found in this PDF across any Camelot flavor.**\n\n"
         "This usually happens when the file:\n"
         "1. Contains only plain text with no tables.\n"
         "2. Is a scanned document or image.\n"
@@ -39,9 +28,9 @@ if st.session_state["no_tables_found"]:
 
 elif "excel_data" not in st.session_state:
     uploaded_file = st.file_uploader(
-        "Upload Only One PDF", 
-        type=["pdf"], 
-        key=st.session_state["key"]
+        "Upload Only One PDF",
+        type=["pdf"],
+        key=st.session_state["key"],
     )
 
     if uploaded_file and st.button("Extract Tables", type="primary", icon="📊"):
@@ -53,20 +42,32 @@ elif "excel_data" not in st.session_state:
             with open(pdf_path, "wb") as f:
                 f.write(uploaded_file.getbuffer())
 
-            with CamelotAdapter(**read_pdf_kwargs) as pdf:
-                tables: list[list[Any]] | None = pdf.extract_tables(filepath=pdf_path)
+            has_any_data = False
 
-            # Check if tables is empty (handles [] or [[]] depending on adapter implementation)
-            if not tables or not any(tables):
+            for sheet_name, kwargs in FLAVOR_CONFIGS.items():
+                try:
+                    with CamelotAdapter(**kwargs) as pdf:
+                        tables: list[list[Any]] | None = pdf.extract_tables(filepath=pdf_path)
+                except Exception as e:
+                    continue
+
+                if tables and any(tables):
+                    has_any_data = True
+                    with OpenPyxlAdapter(excel_path, sheet_name) as excel:
+                        excel.write_rows(
+                            tables,
+                            freeze_header=True,
+                            bold_header=True,
+                            auto_fit=True,
+                        )
+
+            if not has_any_data:
                 st.session_state["no_tables_found"] = True
                 st.rerun()
 
-            with OpenPyxlAdapter(excel_path, "OpenPyxl") as excel:
-                excel.write_rows(tables, freeze_header=True, bold_header=True, auto_fit=True)
-
             with open(excel_path, "rb") as f:
                 st.session_state["excel_data"] = (excel_name, f.read())
-                
+
         st.rerun()
 
 else:
@@ -79,5 +80,5 @@ else:
         mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         on_click=reset,
         type="primary",
-        icon="⬇️"
+        icon="⬇️",
     )

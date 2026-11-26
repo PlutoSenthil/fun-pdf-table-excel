@@ -23,7 +23,7 @@ pip install tabula-py
         # camelot.plot(tables[0], kind='text').show()
         # in case Stream does not guess them correctly
 
-    # network(alignment),
+    # flavor=network(alignment),
     
     # hybrid(solid-line or alignment) (lattice or network)
         # flavor='hybrid'- Mixed / not sure 
