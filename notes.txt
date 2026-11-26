@@ -1,0 +1,111 @@
+pip install playa-pdf
+    Camelot has moved past pdfminer.six to playa-pdf 
+-----------
+pip install pymupdf
+    Page.find_tables()
+    When PyMuPDF wins. Pure speed on simple ruled tables
+
+pip install pypdf
+pip install pypdfium2
+    image conversion backend (default pdfium)
+    using OpenCV
+
+pip install ocrmypdf
+    The recommended workflow is to add a text layer first, then run Camelot. OCRmyPDF is a mature, dedicated tool for exactly this — it wraps Tesseract OCR and overlays the recognised text on the original page images, so the output PDF reads exactly like the input but now has selectable, searchable, extractable text underneath.
+pip install tabula-py
+-----------------------
+
+
+# table parsing methods - flavor="lattice"
+    # lattice(solid-line), 
+    
+    # stream(space)- guessed table areas
+        # camelot.plot(tables[0], kind='text').show()
+        # in case Stream does not guess them correctly
+
+    # flavor=network(alignment),
+    
+    # hybrid(solid-line or alignment) (lattice or network)
+        # flavor='hybrid'- Mixed / not sure 
+    # The same keyword works with flavor='hybrid', where it drives the lattice half of the hybrid parser:
+
+    # flavor='ml' - rule is the model supplies the structure, the page supplies the text: 
+    #   ml roughly doubles borderless TEDS over network/hybrid.) The trade-off is speed
+
+#  Line-detection engine: raster, combined, vector
+    # image-based (raster) line detection is the default(always run except 'vector)
+
+    # 'combined'- exact line coordinates are already in the document reads those vector lines directly and unions them into the rasterised line masks before the grid below is reconstructed
+        # 'combined' is never worse than the default 'raster'.
+    # 'combined' is safe to try on any lattice PDF: raster detection always runs first, so the vector lines can only add to what was found, never remove it. On a PDF whose rules the rasteriser already detects cleanly, engine='combined' returns exactly the same tables as engine='raster'.
+    
+    # 'vector' - The fastest engine (no page render, no OpenCV), for PDFs whose tables are drawn with real vector strokes. A page with no vector ruled lines yields no tables, so prefer 'auto' / 'combined' for mixed documents.
+
+# In my simple word use combined or vector
+
+# Combination
+    # flavor="lattice" engine="auto"
+    # flavor="network" engine="auto"
+    # flavor="stream"  engine="auto"
+    # flavor="ml"  engine="auto"
+
+# parsing_report - The confidence value is a single [0, 1] score computed as (accuracy / 100) * (1 - whitespace / 100)
+# {
+# 'accuracy': 99.02,
+# 'whitespace': 12.24,
+# 'confidence': 0.87,
+# 'order': 1,
+# 'page': 1
+# }
+
+#   tables.export('foo.csv', f='csv',compress=True) method compress=True
+# per_page keyword argument
+# per_page={2: {'table_areas': ['120, 210, 400, 90']}},
+
+# camelot.read_pdf('long.pdf', pages='all', parallel=True) //cpu_count=4
+
+# tables = camelot.read_pdf(
+#     "background_lines.pdf",
+#     flavor="lattice",
+#     engine="auto",
+#     process_background=False,
+# )
+# process_background=True - "noise" tables picked up from page borders or background art.
+
+# tables = camelot.read_pdf('noisy.pdf')
+# good = tables.filter(min_rows=2, min_columns=2).filter(min_accuracy=90).filter(max_whitespace=50)
+
+# camelot.plot(tables[0], kind='text').show()
+# ‘text’ • ‘grid’ • ‘contour’ • ‘line’ • ‘joint’ • ‘textedge
+
+# camelot.read_pdf - table_areas=['12,54,43,23', '20,67,55,33']
+# table_areas accepts strings of the form x1,y1,x2,y2 where (x1, y1) -> top-left and (x2, y2) -> bottom-right in PDF coordinate space. In PDF coordinate space, the bottom-left corner of the page is the origin, with coordinates (0, 0).
+
+# table might not lie at the exact coordinates every time but in an approximate region
+# camelot.read_pdf -  table_regions=['170,370,560,270']
+# camelot.read_pdf -  columns=['10,120,200,400', '']
+# camelot.read_pdf -  split_text=True
+# strip_text=' \n'strip unwanted characters like spaces and newlines from a string
+# You can pass row_tol=<+int> to group the rows closer together, as shown below. , row_tol=10
+
+# try flavor="auto" or
+# flavor="hybrid" and inspect Table.parsing_report (especially the confidence field) to pick the better
+# path.
+
+# -----------------------
+# While class init default config I planned
+# camelot.read_pdf = flavor="auto",engine="auto" ,process_background=False,line_scale=40
+# .filter(min_columns=5).filter(min_accuracy=90)
+# strip_text=','strip unwanted characters like comma
+# replace_text={' \n': ' '}  Use replace_text to turn “ n” (space + newline) into a single space:
+
+
+# reduce memory usage for long PDF
+filepath,total_pages,chunk_size=50,(default: 50)
+# Total page count of the PDF. Get it from any PDF tool, e.g.
+# ``len(playa.parse(open(filepath, "rb").read()).pages)``.
+for start in range(1, total_pages + 1, chunk_size):
+end = min(start + chunk_size - 1, total_pages)
+tables = camelot.read_pdf(
+filepath, pages=f"{start}-{end}", **read_pdf_kwargs
+)

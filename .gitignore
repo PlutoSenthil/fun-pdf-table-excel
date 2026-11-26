@@ -1,6 +1,6 @@
 *.pdf
-./input
-./output
+.input/
+.output/
 *.xlsx
 *.json
 .devcontainer/

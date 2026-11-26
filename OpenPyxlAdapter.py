@@ -1,5 +1,5 @@
 import os
-import re
+from typing import Any 
 import openpyxl
 from openpyxl.styles import Font
 from openpyxl.utils import get_column_letter
@@ -28,14 +28,14 @@ class OpenPyxlAdapter:
     def write_row(self, row_data: list) -> None:
         self.worksheet.append(row_data)
 
-    def write_rows(self, rows: list[list], freeze_header: bool = False, bold_header: bool = False, auto_fit: bool = False) -> None:
+    def write_rows(self, rows: list[list[Any]], freeze_header: bool = False, bold_header: bool = False, auto_fit: bool = False) -> None:
         for row in rows:
             self.write_row(row)
-        if freeze_header:
+        if rows and freeze_header:
             self.freeze_first_row()
-        if bold_header:
+        if rows and bold_header:
             self.bold_first_row()
-        if auto_fit:
+        if rows and auto_fit:
             self.maximize_columns()
 
     def freeze_first_row(self) -> None:
