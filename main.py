@@ -1,23 +1,36 @@
 import os
 import tempfile
-import streamlit as st
 from typing import Any
-from CamelotAdapter import CamelotAdapter,FLAVOR_CONFIGS
+import streamlit as st
+from CamelotAdapter import CamelotAdapter, FLAVOR_CONFIGS
 from OpenPyxlAdapter import OpenPyxlAdapter
+from pdfplumberAdapter import pdfplumberAdapter
 
 st.session_state.setdefault("key", 0)
 st.session_state.setdefault("no_tables_found", False)
 
-def reset():
+
+def reset() -> None:
     st.session_state.pop("excel_data", None)
     st.session_state["no_tables_found"] = False
     st.session_state["key"] += 1
 
-st.title("Camelot PDF to Excel Table")
+
+def has_rows(tables: list[list[Any]] | None) -> bool:
+    return bool(tables and any(tables))
+
+
+st.title("PDF to Excel Table")
+st.info(
+    "**Note:** Only works with text-based PDFs and not scanned documents. "
+    '(As Tabula explains, *"If you can click and drag to select text in your '
+    'table in a PDF viewer, then your PDF is text-based."*)',
+    icon="ℹ️",
+)
 
 if st.session_state["no_tables_found"]:
     st.warning(
-        "**No tables were found in this PDF across any Camelot flavor.**\n\n"
+        "**No tables were found in this PDF using pdfplumber or any Camelot flavor.**\n\n"
         "This usually happens when the file:\n"
         "1. Contains only plain text with no tables.\n"
         "2. Is a scanned document or image.\n"
@@ -44,22 +57,46 @@ elif "excel_data" not in st.session_state:
 
             has_any_data = False
 
-            for sheet_name, kwargs in FLAVOR_CONFIGS.items():
-                try:
-                    with CamelotAdapter(**kwargs) as pdf:
-                        tables: list[list[Any]] | None = pdf.extract_tables(filepath=pdf_path)
-                except Exception as e:
-                    continue
+            # 1. Default: try pdfplumber first
+            status = st.status("Extracting tables...pdfplumber", expanded=False)
+            try:
+                with pdfplumberAdapter(pdf_path) as pdf:
+                    plumber_tables:list[list[Any]] = pdf.extract_tables()
+            except Exception:
+                plumber_tables = []
 
-                if tables and any(tables):
-                    has_any_data = True
-                    with OpenPyxlAdapter(excel_path, sheet_name) as excel:
-                        excel.write_rows(
-                            tables,
-                            freeze_header=True,
-                            bold_header=True,
-                            auto_fit=True,
-                        )
+            if has_rows(plumber_tables):
+                status.update(label="Extracted tables with pdfplumber", state="complete")
+                has_any_data = True
+                with OpenPyxlAdapter(excel_path, "pdfplumber") as excel:
+                    excel.write_rows(
+                        plumber_tables,
+                        freeze_header=True,
+                        bold_header=True,
+                        auto_fit=True,
+                    )
+            else:
+                # 2. Fallback: try Camelot flavors when pdfplumber returns empty
+                status.update(label="Extracting tables... Camelot...", state="running")
+                for sheet_name, kwargs in FLAVOR_CONFIGS.items():
+                    try:
+                        with CamelotAdapter(**kwargs) as pdf:
+                            camelot_tables: list[list[Any]]  = pdf.extract_tables(
+                                filepath=pdf_path
+                            )
+                    except Exception:
+                        camelot_tables = []
+
+                    if has_rows(camelot_tables):
+                        has_any_data = True
+                        with OpenPyxlAdapter(excel_path, sheet_name) as excel:
+                            excel.write_rows(
+                                camelot_tables,
+                                freeze_header=True,
+                                bold_header=True,
+                                auto_fit=True,
+                            )
+                        status.update(label="Extracted tables with Camelot", state="complete")
 
             if not has_any_data:
                 st.session_state["no_tables_found"] = True
