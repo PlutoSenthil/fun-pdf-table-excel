@@ -11,7 +11,7 @@ FLAVOR_CONFIGS: dict[str, dict[str, Any]] = {
         "pages": "all",
         "flavor": "lattice",
         "engine": "combined",
-        "process_background": True,
+        "process_background": False,
         "line_scale": 40,
         "shift_text": [""],
         "split_text": False,
@@ -44,6 +44,20 @@ FLAVOR_CONFIGS: dict[str, dict[str, Any]] = {
         "replace_text": {"\n": " "},
         "parallel": True,
     },
+    "Hybrid": {
+        "pages": "all",
+        "flavor": "hybrid",
+        "engine": "combined",
+        "process_background": False,
+        "line_scale": 40,
+        "edge_tol": 50,
+        "row_tol": 2,
+        "split_text": True,
+        "flag_size": False,
+        "strip_text": ",",
+        "replace_text": {"\n": " "},
+        "parallel": True,
+    }
 }
 
 class CamelotAdapter(BaseTableAdapter):
